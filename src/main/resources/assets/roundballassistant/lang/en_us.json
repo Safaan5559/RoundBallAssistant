@@ -1,0 +1,10 @@
+{
+  "key.roundballassistant.open": "Open Round Ball Assistant",
+  "category.roundballassistant": "Round Ball Assistant",
+  "screen.roundballassistant.title": "Round Ball Assistant",
+  "screen.roundballassistant.voice": "Voice Conversations",
+  "screen.roundballassistant.voice.on": "Voice: ON",
+  "screen.roundballassistant.voice.off": "Voice: OFF",
+  "screen.roundballassistant.send": "Send",
+  "entity.roundballassistant.round_ball": "Round Ball Assistant"
+}
