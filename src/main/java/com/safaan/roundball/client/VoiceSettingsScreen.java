@@ -33,7 +33,8 @@ public final class VoiceSettingsScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), b -> close()).dimensions(x, height / 2 + 35, w, 20).build());
     }
 
-    private void close() { if (client != null) client.setScreen(parent); }
+    @Override
+    public void close() { if (client != null) client.setScreen(parent); }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {

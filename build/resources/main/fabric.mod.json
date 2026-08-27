@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "roundballassistant",
+  "version": "1.0.0",
+  "name": "Round Ball Assistant",
+  "description": "A yellow smiling companion for survival and creative worlds.",
+  "authors": ["Safaan5559"],
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.safaan.roundball.RoundBallAssistant"],
+    "client": ["com.safaan.roundball.client.RoundBallAssistantClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "1.21.1",
+    "fabric-api": ">=0.116.9"
+  }
+}

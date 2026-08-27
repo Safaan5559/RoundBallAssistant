@@ -2,8 +2,7 @@ package com.safaan.roundball.entity;
 
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ai.goal.LookAtEntityGoal;
-import net.minecraft.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.entity.ai.goal.WanderAroundGoal;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.LivingEntity;
@@ -21,8 +20,6 @@ public final class RoundBallEntity extends SlimeEntity {
 
     @Override
     protected void initGoals() {
-        goalSelector.add(2, new MeleeAttackGoal(this, 1.15, true));
-        goalSelector.add(7, new WanderAroundGoal(this, 0.65));
         goalSelector.add(8, new LookAtEntityGoal(this, PlayerEntity.class, 10.0f));
     }
 
@@ -43,6 +40,14 @@ public final class RoundBallEntity extends SlimeEntity {
         // The core assistant never chooses a target automatically. A future action provider
         // may explicitly request a target after the player asks for it.
         if (target != null && target.isAlive()) setTarget(target);
+    }
+
+    public void attackNearestHostile() {
+        LivingEntity nearest = getWorld().getEntitiesByClass(LivingEntity.class, getBoundingBox().expand(16.0),
+                entity -> entity instanceof HostileEntity && entity.isAlive()).stream()
+                .min((first, second) -> Double.compare(squaredDistanceTo(first), squaredDistanceTo(second)))
+                .orElse(null);
+        requestTarget(nearest);
     }
 
     @Override
