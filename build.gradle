@@ -19,7 +19,24 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 }
 
+tasks.register('generateRoundBallTexture') {
+    outputs.file(layout.projectDirectory.file('src/main/resources/assets/roundballassistant/textures/entity/round_ball.png'))
+    doLast {
+        def out = layout.projectDirectory.file('src/main/resources/assets/roundballassistant/textures/entity/round_ball.png').asFile
+        out.parentFile.mkdirs()
+        def image = new java.awt.image.BufferedImage(64, 64, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        def g = image.createGraphics()
+        g.setColor(new java.awt.Color(255, 220, 40, 255)); g.fillRect(0, 0, 64, 64)
+        g.setColor(new java.awt.Color(35, 35, 20, 255))
+        g.fillOval(14, 14, 10, 14); g.fillOval(40, 14, 10, 14)
+        g.setStroke(new java.awt.BasicStroke(4)); g.drawArc(14, 20, 36, 30, 10, 160)
+        g.dispose()
+        javax.imageio.ImageIO.write(image, 'png', out)
+    }
+}
+
 processResources {
+    dependsOn tasks.named('generateRoundBallTexture')
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') { expand 'version': project.version }
 }
