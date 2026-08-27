@@ -1,6 +1,10 @@
 # Round Ball Assistant
 
+## Made by Safaan
+
 A survival-focused yellow smiling companion mod for Minecraft Java Edition.
+
+[![Visit Safaan's YouTube Channel](https://img.shields.io/badge/YouTube-Visit%20My%20Channel-red?logo=youtube&logoColor=white)](https://youtube.com/@safshad-67)
 
 ## Target
 
