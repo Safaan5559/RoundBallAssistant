@@ -44,5 +44,3 @@ The resulting JAR is in `build/libs/`.
 
 - **Shift + K** — open the text assistant
 - Voice mode can be enabled from **Voice settings**
-
-The repository is source-first; GitHub Actions builds the actual JAR artifact.
