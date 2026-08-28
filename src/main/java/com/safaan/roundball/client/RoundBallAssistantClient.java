@@ -19,7 +19,7 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
-/** Client entry point: GUI, keybinds, entity rendering and end-to-end voice commands. */
+/** Client entry point: GUI, keybinds, entity rendering and toggle voice commands. */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public final class RoundBallAssistantClient implements ClientModInitializer {
     private static KeyBinding openAssistant;
@@ -28,6 +28,7 @@ public final class RoundBallAssistantClient implements ClientModInitializer {
     private static AndroidVoiceAdapter androidVoice;
     private static OnlineVoiceProvider voiceProvider;
     private static final AssistantService ASSISTANT = new AssistantService();
+    private static boolean voiceToggle;
 
     @Override
     public void onInitializeClient() {
@@ -44,11 +45,17 @@ public final class RoundBallAssistantClient implements ClientModInitializer {
             while (openAssistant.wasPressed()) {
                 if (client.player != null && hasShiftDown()) client.setScreen(new AssistantScreen());
             }
-            if (pushToTalk.isPressed()) {
-                ensureVoice();
-                if (!voiceRunning()) startVoice(client);
-            } else if (voiceRunning()) {
-                stopVoice();
+            while (pushToTalk.wasPressed()) {
+                voiceToggle = !voiceToggle;
+                if (voiceToggle) {
+                    ensureVoice();
+                    if (!voiceRunning()) startVoice(client);
+                } else {
+                    stopVoice();
+                }
+                if (client.player != null) {
+                    client.player.sendMessage(Text.literal(voiceToggle ? "Voice: ON" : "Voice: OFF"), true);
+                }
             }
         });
         RoundBallAssistant.LOGGER.info("Round Ball Assistant client initialized");
@@ -80,7 +87,7 @@ public final class RoundBallAssistantClient implements ClientModInitializer {
         VoiceInputProvider.Listener listener = new VoiceInputProvider.Listener() {
             @Override
             public void onTranscript(String message) {
-                if (message == null || message.isBlank()) return;
+                if (message == null || message.isBlank() || !voiceToggle) return;
                 client.execute(() -> processVoiceCommand(client, message.trim()));
             }
 
@@ -96,10 +103,8 @@ public final class RoundBallAssistantClient implements ClientModInitializer {
         else if (androidVoice != null) androidVoice.start(listener);
     }
 
-    /** Runs recognized speech through the same AssistantService used by the text UI, then speaks the reply. */
     private static void processVoiceCommand(MinecraftClient client, String transcript) {
         if (client.player == null || client.world == null) return;
-
         RoundBallEntity ball = client.world.getEntitiesByClass(
                 RoundBallEntity.class,
                 client.player.getBoundingBox().expand(32.0),
@@ -110,7 +115,6 @@ public final class RoundBallAssistantClient implements ClientModInitializer {
                 .orElse(null);
 
         client.player.sendMessage(Text.literal("You: " + transcript), false);
-
         ASSISTANT.handle(client.player, ball, transcript, reply -> {
             String spokenReply = reply == null || reply.isBlank() ? "I'm ready." : reply;
             client.player.sendMessage(Text.literal("Round Ball: " + spokenReply), false);
