@@ -6,6 +6,9 @@ public final class AssistantConfig {
     private boolean pushToTalk = true;
     private float voiceVolume = 1.0f;
     private int maxCommandLength = 512;
+    private boolean fishAudioTts;
+    private String fishAudioApiKey = "";
+    private String fishAudioVoice = "";
 
     public boolean voiceConversations() { return voiceConversations; }
     public void setVoiceConversations(boolean value) { voiceConversations = value; }
@@ -15,4 +18,10 @@ public final class AssistantConfig {
     public void setVoiceVolume(float value) { voiceVolume = Math.max(0.0f, Math.min(1.0f, value)); }
     public int maxCommandLength() { return maxCommandLength; }
     public void setMaxCommandLength(int value) { maxCommandLength = Math.max(32, Math.min(4096, value)); }
+    public boolean fishAudioTts() { return fishAudioTts; }
+    public void setFishAudioTts(boolean value) { fishAudioTts = value; }
+    public String fishAudioApiKey() { return fishAudioApiKey; }
+    public void setFishAudioApiKey(String value) { fishAudioApiKey = value == null ? "" : value; }
+    public String fishAudioVoice() { return fishAudioVoice; }
+    public void setFishAudioVoice(String value) { fishAudioVoice = value == null ? "" : value; }
 }
