@@ -2,6 +2,7 @@ package com.safaan.roundball.client;
 
 import com.safaan.roundball.config.AssistantConfig;
 import com.safaan.roundball.voice.OnlineVoiceConfig;
+import com.safaan.roundball.voice.VoiceConfigStore;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -15,6 +16,10 @@ public final class VoiceSettingsScreen extends Screen {
     private static final OnlineVoiceConfig VOICE = new OnlineVoiceConfig();
     private TextFieldWidget apiKey;
     private TextFieldWidget voiceId;
+
+    static {
+        VoiceConfigStore.load(VOICE);
+    }
 
     public VoiceSettingsScreen(Screen parent) {
         super(Text.literal("Round Ball Voice Settings"));
@@ -43,7 +48,7 @@ public final class VoiceSettingsScreen extends Screen {
         apiKey = new TextFieldWidget(textRenderer, x, y + 58, w, 20, Text.literal("Fish Audio API key"));
         apiKey.setMaxLength(512);
         apiKey.setText(VOICE.apiKey());
-        apiKey.setRenderTextProvider((text, offset) -> "•".repeat(text.length()).substring(0, Math.max(0, text.length() - offset)));
+        apiKey.setRenderTextProvider((text, offset) -> "•".repeat(Math.max(0, text.length() - offset)));
         addDrawableChild(apiKey);
 
         voiceId = new TextFieldWidget(textRenderer, x, y + 85, w, 20, Text.literal("Verity voice/reference ID"));
@@ -59,6 +64,7 @@ public final class VoiceSettingsScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Save & Done"), b -> {
             VOICE.setApiKey(apiKey.getText().trim());
             VOICE.setVoice(voiceId.getText().trim());
+            VoiceConfigStore.save(VOICE);
             close();
         }).dimensions(x, y + 145, w, 20).build());
     }
