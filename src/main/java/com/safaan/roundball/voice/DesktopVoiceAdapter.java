@@ -13,6 +13,8 @@ public final class DesktopVoiceAdapter implements AutoCloseable {
 
     public DesktopVoiceAdapter(OnlineVoiceProvider provider) { this.provider = Objects.requireNonNull(provider); }
 
+    public boolean isRunning() { return running; }
+
     public synchronized boolean start(VoiceInputProvider.Listener listener) {
         if (running || !provider.isAvailable()) return false;
         try {
