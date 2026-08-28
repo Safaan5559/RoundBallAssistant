@@ -46,5 +46,8 @@ java { withSourcesJar(); sourceCompatibility = JavaVersion.VERSION_21; targetCom
 tasks.named('sourcesJar') {
     dependsOn tasks.named('generateRoundBallTexture')
 }
+tasks.named('remapJar') {
+    archiveFileName = 'roundballassistance-fabric0.19.3-1.21.1.jar'
+}
 jar { from('LICENSE') { rename { "${it}_${project.archives_base_name}" } } }
 publishing { publications { create('mavenJava', MavenPublication) { from components.java } } }
