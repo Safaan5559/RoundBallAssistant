@@ -1,5 +1,11 @@
 package com.safaan.roundball.voice;
 
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -11,11 +17,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * HTTP provider boundary for STT/TTS services.
- *
- * The provider expects an HTTP adapter endpoint supplied by the user/server.
- * Audio capture and playback remain provider-specific so the same core mod can
- * run on desktop launchers and Android-based launchers.
+ * Online STT/TTS provider. When provider=fish_audio, TTS is generated directly
+ * by Fish Audio using the configured Verity reference voice.
  */
 public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutputProvider {
     private final OnlineVoiceConfig config;
@@ -29,9 +32,8 @@ public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutpu
 
     @Override
     public boolean isAvailable() {
-        return config.enabled()
-                && !config.endpoint().isBlank()
-                && !config.apiKey().isBlank();
+        return config.enabled() && !config.apiKey().isBlank()
+                && (!config.endpoint().isBlank() || "fish_audio".equalsIgnoreCase(config.provider()));
     }
 
     @Override
@@ -41,10 +43,7 @@ public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutpu
             listener.onError("Online voice provider is not configured.");
             return;
         }
-        if (listening) return;
         listening = true;
-        // Audio capture is supplied by a launcher/platform adapter. This class
-        // accepts captured PCM through submitAudio().
     }
 
     /** Submit a captured audio buffer to the configured STT endpoint. */
@@ -52,7 +51,8 @@ public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutpu
         if (!listening || !isAvailable() || audio == null || audio.length == 0) return;
         executor.execute(() -> {
             try {
-                HttpRequest request = HttpRequest.newBuilder(URI.create(config.endpoint() + "/stt"))
+                URI uri = URI.create(config.endpoint().replaceAll("/$", "") + "/stt");
+                HttpRequest request = HttpRequest.newBuilder(uri)
                         .header("Authorization", "Bearer " + config.apiKey())
                         .header("Content-Type", contentType == null ? "audio/wav" : contentType)
                         .POST(HttpRequest.BodyPublishers.ofByteArray(audio))
@@ -74,28 +74,72 @@ public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutpu
     }
 
     @Override
-    public void stopListening() {
-        listening = false;
-    }
+    public void stopListening() { listening = false; }
 
     @Override
     public void speak(String text) {
         if (!isAvailable() || text == null || text.isBlank()) return;
         executor.execute(() -> {
             try {
-                String json = "{\"text\":\"" + escapeJson(text) + "\"}";
-                HttpRequest request = HttpRequest.newBuilder(URI.create(config.endpoint() + "/tts"))
-                        .header("Authorization", "Bearer " + config.apiKey())
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
-                        .build();
-                // The adapter/server is responsible for returning or routing audio
-                // to the platform's playback implementation.
-                http.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray());
-            } catch (RuntimeException e) {
-                // Keep voice failures from crashing Minecraft.
+                if ("fish_audio".equalsIgnoreCase(config.provider())) {
+                    speakWithFish(text);
+                } else {
+                    speakWithGenericEndpoint(text);
+                }
+            } catch (Exception e) {
+                // Voice failures must never crash Minecraft.
             }
         });
+    }
+
+    private void speakWithFish(String text) throws IOException, InterruptedException {
+        String endpoint = "https://api.fish.audio/v1/tts";
+        StringBuilder json = new StringBuilder("{\"text\":\"")
+                .append(escapeJson(text)).append("\",\"format\":\"wav\",\"latency\":\"balanced\"");
+        if (!config.voice().isBlank()) {
+            json.append(",\"reference_id\":\"").append(escapeJson(config.voice())).append("\"");
+        }
+        json.append('}');
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create(endpoint))
+                .header("Authorization", "Bearer " + config.apiKey())
+                .header("Content-Type", "application/json")
+                .header("model", config.speechModel().isBlank() ? "s2.1-pro-free" : config.speechModel())
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() / 100 != 2) return;
+        playWav(response.body());
+    }
+
+    private void speakWithGenericEndpoint(String text) throws IOException, InterruptedException {
+        String json = "{\"text\":\"" + escapeJson(text) + "\"}";
+        HttpRequest request = HttpRequest.newBuilder(URI.create(config.endpoint().replaceAll("/$", "") + "/tts"))
+                .header("Authorization", "Bearer " + config.apiKey())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() / 100 == 2) playWav(response.body());
+    }
+
+    /** Plays Fish's WAV response through the desktop audio device. */
+    private static void playWav(byte[] wav) throws Exception {
+        if (wav == null || wav.length == 0) return;
+        try (AudioInputStream input = AudioSystem.getAudioInputStream(new ByteArrayInputStream(wav))) {
+            AudioFormat format = input.getFormat();
+            DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+            try (SourceDataLine line = (SourceDataLine) AudioSystem.getLine(info)) {
+                line.open(format);
+                line.start();
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) line.write(buffer, 0, count);
+                line.drain();
+                line.stop();
+            }
+        }
     }
 
     @Override
