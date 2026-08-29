@@ -48,7 +48,7 @@ public final class VoiceSettingsScreen extends Screen {
         apiKey = new TextFieldWidget(textRenderer, x, y + 58, w, 20, Text.literal("Fish Audio API key"));
         apiKey.setMaxLength(512);
         apiKey.setText(VOICE.apiKey());
-        apiKey.setRenderTextProvider((text, offset) -> "•".repeat(Math.max(0, text.length() - offset)));
+        apiKey.setRenderTextProvider((text, offset) -> Text.literal("•".repeat(Math.max(0, text.length() - offset))).asOrderedText());
         addDrawableChild(apiKey);
 
         voiceId = new TextFieldWidget(textRenderer, x, y + 85, w, 20, Text.literal("Verity voice/reference ID"));

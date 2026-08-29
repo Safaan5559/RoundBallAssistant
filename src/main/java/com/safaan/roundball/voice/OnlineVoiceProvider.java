@@ -105,12 +105,16 @@ public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutpu
                 .header("Authorization", "Bearer " + config.apiKey())
                 .header("Content-Type", "application/json")
                 .header("model", config.speechModel().isBlank() ? "s2.1-pro-free" : config.speechModel())
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(json.toString(), StandardCharsets.UTF_8))
                 .build();
 
         HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
         if (response.statusCode() / 100 != 2) return;
-        playWav(response.body());
+        try {
+            playWav(response.body());
+        } catch (Exception e) {
+            // Audio playback failures should not crash the game.
+        }
     }
 
     private void speakWithGenericEndpoint(String text) throws IOException, InterruptedException {
@@ -121,7 +125,13 @@ public final class OnlineVoiceProvider implements VoiceInputProvider, VoiceOutpu
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();
         HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        if (response.statusCode() / 100 == 2) playWav(response.body());
+        if (response.statusCode() / 100 == 2) {
+            try {
+                playWav(response.body());
+            } catch (Exception e) {
+                // Audio playback failures should not crash the game.
+            }
+        }
     }
 
     /** Plays Fish's WAV response through the desktop audio device. */
